@@ -36,6 +36,6 @@ string getBashPrefix(int directory) {
     if( directory == 0 ) {
         return "matin@ubuntu:~$ ";
     } else {
-        return "matin@ubuntu:~$/" + Database::getPath(directory) + "/" ;
+        return "matin@ubuntu:~/" + Database::getPath(directory) + "$ " ;
     }
 }

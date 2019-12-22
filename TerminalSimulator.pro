@@ -3,7 +3,8 @@ CONFIG += console c++11
 CONFIG -= app_bundle
 CONFIG -= qt
 
-LIBS += -lsqlite3
+LIBS += -lsqlite3\
+        -lboost_system\
 
 SOURCES += \
     src/main.cpp \

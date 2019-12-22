@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include <iostream>
 #include <vector>
+#include <string>
+#include <boost/lexical_cast.hpp>
 
 Database::Database()
 {
@@ -198,8 +200,11 @@ void Database::createFile(string fileName, int directory_id)
 }
 
 static int pathCallback(void *data, int argc, char **argv, char **azColName){
-   string da = *(string *)data;
-   cout << da.c_str();
+
+   string str = argv[0];
+
+   *(string *)data = argv[0];
+
    return 0;
 }
 
@@ -209,39 +214,55 @@ string Database::getPath(int directory_id)
     sqlite3 *db;
     char *zErrMsg = 0;
     int rc;
-    const char* dirData = "Callback function called";
 
     rc = sqlite3_open(dbPath, &db);
 
-    string* data;
+    const string data = "";
 
-    string sql = "WITH RECURSIVE path(level, name, parent_id) AS ("\
-                "SELECT 0, name, parent_id "\
-                    "FROM Directories "\
-                    "WHERE id = 12 "\
-                    "UNION ALL "\
-                    "SELECT path.level + 1, "\
-                           "Directories.name, "\
-                           "Directories.parent_id "\
-                    "FROM Directories "\
-                    "JOIN path ON Directories.id = path.parent_id "\
-                "),"\
-                "path_from_root AS ("\
-                    "SELECT name "\
-                    "FROM path "\
-                    "ORDER BY level DESC "\
+    string sql = "with parentTable as"\
+                 "("\
+                 "   select * from Directories where id = " + std::to_string(directory_id) + ""\
+                 "   union all"\
+                 "   select Directories.*"\
+                 "      from Directories join parentTable on Directories.id = parentTable.parent_id"\
                 ")"\
-                "SELECT group_concat(name, '/') "\
-                "FROM path_from_root;";
+                "select group_concat(name, '/') from parentTable";
 
-    rc = sqlite3_exec(db, sql.c_str(), pathCallback, (void*)data, &zErrMsg);
+    rc = sqlite3_exec(db, sql.c_str(), pathCallback, (void*)&data, &zErrMsg);
 
-//    sqlite3_ex
-    if( rc != SQLITE_OK ) {
-        printf("SQL error: %s\n", zErrMsg);
-    }
-
-//    cout << "data is : " << data;
-    return "test";
+    sqlite3_close(db);
+    return data;
 
 }
+
+static int changeDirCallback(void *data, int argc, char **argv, char **azColName){
+
+   string str = argv[0];
+
+   *(string *)data = argv[0];
+
+   return 0;
+}
+
+void Database::changeDirectory(string dirName, int *directory_id) {
+    sqlite3 *db;
+    char *zErrMsg = 0;
+    int rc;
+
+    string data = "";
+
+    rc = sqlite3_open(dbPath, &db);
+
+    string sql = "select id from Directories where name = \"" + dirName + "\";";
+
+    rc = sqlite3_exec(db, sql.c_str(), changeDirCallback, (void*)&data, &zErrMsg);
+
+    if( rc != SQLITE_OK ) {
+        fprintf(stderr, "SQL here error: %s\n", zErrMsg);
+    }
+
+    sqlite3_close(db);
+
+    *directory_id = boost::lexical_cast<int>(data);
+}
+
