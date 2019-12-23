@@ -15,7 +15,8 @@ SOURCES += \
     commands/commands.cpp \
     utils/database.cpp \
     commands/rm.cpp \
-    commands/touch.cpp
+    commands/touch.cpp \
+    commands/mkdir.cpp
 
 HEADERS += \
     headers/sysinfo.h \

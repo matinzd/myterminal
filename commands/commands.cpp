@@ -46,5 +46,20 @@ void Commands::runCommand(string command, int *directory_id) {
         return;
     }
 
+    if( extractCommandName(command) == "mkdir" ) {
+        Commands::mkdir(command, *directory_id);
+        return;
+    }
+
+    if( extractCommandName(command) == "rmdir" ) {
+        Commands::rmdir(command, *directory_id);
+        return;
+    }
+
+    if( extractCommandName(command) == "rm" ) {
+        Commands::rm(command, *directory_id);
+        return;
+    }
+
     cout << "Command " << extractCommandName(command) << " not found :(" << endl;
 }

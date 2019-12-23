@@ -3,22 +3,30 @@
 #include <sstream>
 #include <regex>
 #include <iostream>
+#include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string/regex.hpp>
+#include <boost/tokenizer.hpp>
+#include <regex>
 
 using namespace std;
 
-string extract(string command) {
-    std::regex r(R"([^\W_]+(?:['_-][^\W_]+)*)");
-    smatch m;
-    for( sregex_iterator i = sregex_iterator(command.begin(), command.end(), r); i != sregex_iterator(); i++ ) {
-        m = *i;
-        if( !(m.str().find("touch") != std::string::npos) ) {
-            break;
-        }
-    }
-    return m.str();
-}
 
 void Commands::touch(string command, int directory_id)
 {
-   Database::createFile(extract(command), directory_id);
+    string cmd = "touch";
+    size_t index = command.find(cmd);
+    string options = command.substr(index + cmd.length(), command.length());
+    boost::trim(options);
+    regex r("^(..\/)*?(\/$|(\/?[a-zA-Z_0-9-]+)+)?$");
+    smatch m;
+
+    boost::char_separator<char> sep("/");
+    if( regex_search(options, m, r) ) {
+        boost::tokenizer<boost::char_separator<char>> tokens(options, sep);
+        for (const string& t : tokens)
+        {
+            Database::createFile(t, *&directory_id);
+            break;
+        }
+    }
 }

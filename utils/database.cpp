@@ -6,6 +6,7 @@
 #include <vector>
 #include <string>
 #include <boost/lexical_cast.hpp>
+#include <boost/algorithm/string.hpp>
 
 Database::Database()
 {
@@ -75,7 +76,7 @@ void Database::init() {
 
     char* dirSqlStatement = "create table if not exists Directories (" \
             "id integer primary key autoincrement," \
-            "name text not null unique,"\
+            "name text not null,"\
             "parent_id integer,"\
             "permissions int not null default 755,"\
             "dateCreated date not null default current_timestamp,"\
@@ -86,7 +87,7 @@ void Database::init() {
 
     char* fileSqlStatement = "create table if not exists Files ("\
             "id integer primary key autoincrement,"\
-            "name text not null unique,"\
+            "name text not null,"\
             "directory_id integer,"\
             "permissions int not null default 644,"\
             "dateCreated date not null default current_timestamp,"\
@@ -199,6 +200,46 @@ void Database::createFile(string fileName, int directory_id)
     sqlite3_close(db);
 }
 
+static int removeFileCallback(void *data, int argc, char **argv, char **azColName){
+
+
+   if( !argv[0] ) {
+       cout << "File does not exist";
+   }
+
+   return 0;
+}
+
+
+void Database::removeFile(string fileName, int directory_id)
+{
+    sqlite3 *db;
+    char *zErrMsg = 0;
+    int rc;
+    const char* dirData = "Callback function called";
+
+    rc = sqlite3_open(dbPath, &db);
+
+    string sql;
+
+    if( directory_id == 0 ) {
+        sql = "DELETE FROM Files WHERE name = \"" + fileName + "\" and directory_id is NULL;";
+    } else {
+        sql = "DELETE FROM Files WHERE name = \"" + fileName + "\" and directory_id = " + std::to_string(directory_id) + ";";
+    }
+
+//    cout << sql << endl;
+
+    rc = sqlite3_exec(db, sql.c_str(), removeFileCallback, 0, &zErrMsg);
+
+    if( rc != SQLITE_OK ) {
+        printf("%s\n", "File exists!");
+    }
+
+    sqlite3_close(db);
+}
+
+
 static int pathCallback(void *data, int argc, char **argv, char **azColName){
 
    string str = argv[0];
@@ -237,12 +278,10 @@ string Database::getPath(int directory_id)
 
 static int changeDirCallback(void *data, int argc, char **argv, char **azColName){
 
-   string str = argv[0];
-
    *(string *)data = argv[0];
-
    return 0;
 }
+
 
 void Database::changeDirectory(string dirName, int *directory_id) {
     sqlite3 *db;
@@ -253,7 +292,14 @@ void Database::changeDirectory(string dirName, int *directory_id) {
 
     rc = sqlite3_open(dbPath, &db);
 
-    string sql = "select id from Directories where name = \"" + dirName + "\";";
+    string sql;
+
+    if( *directory_id == 0 ) {
+        sql = "select id from Directories where parent_id is NULL and name = \"" + dirName + "\";";
+    } else {
+        sql = "select id from Directories where parent_id = " + std::to_string(*directory_id) + " and name = \"" + dirName + "\";";
+    }
+
 
     rc = sqlite3_exec(db, sql.c_str(), changeDirCallback, (void*)&data, &zErrMsg);
 
@@ -263,6 +309,99 @@ void Database::changeDirectory(string dirName, int *directory_id) {
 
     sqlite3_close(db);
 
-    *directory_id = boost::lexical_cast<int>(data);
+
+    try {
+        *directory_id = boost::lexical_cast<int>(data);
+    } catch (exception) {
+        cout << "cd: " << dirName << ": No such file or directory" << endl;
+    }
+}
+
+
+static int goToParentDirectoryCallback(void *data, int argc, char **argv, char **azColName){
+
+  *(string *)data = argv[0] ? argv[0] : "0";
+
+   return 0;
+}
+
+
+void Database::goToParentDirectory(int *directory_id) {
+    sqlite3 *db;
+    char *zErrMsg = 0;
+    int rc;
+
+    string data = "";
+
+    rc = sqlite3_open(dbPath, &db);
+
+//    cout << "Executing command " << std::to_string(*directory_id) ;
+
+    string sql = "select parent_id from Directories where id = " + std::to_string(*directory_id) + ";";
+
+    rc = sqlite3_exec(db, sql.c_str(), goToParentDirectoryCallback, (void*)&data, &zErrMsg);
+
+    if( rc != SQLITE_OK ) {
+        fprintf(stderr, "SQL here error: %s\n", zErrMsg);
+    }
+
+    sqlite3_close(db);
+
+    try {
+        *directory_id = boost::lexical_cast<int>(data);
+    } catch (exception) {
+        cout << "cd: No such file or directory" << endl;
+    }
+}
+
+
+void Database::makeDirectory(string dirName, int directory_id)
+{
+    sqlite3 *db;
+    char *zErrMsg = 0;
+    int rc;
+
+    rc = sqlite3_open(dbPath, &db);
+
+
+    string sql;
+    if( directory_id == 0 ) {
+        sql = "insert into Directories (name, parent_id) values (\"" + dirName + "\", NULL);";
+    } else {
+        sql = "insert into Directories (name, parent_id) values (\"" + dirName + "\", " +  std::to_string(directory_id) + ");";
+    }
+
+    rc = sqlite3_exec(db, sql.c_str(), 0, 0, &zErrMsg);
+
+    if( rc != SQLITE_OK ) {
+        fprintf(stderr, "SQL here error: %s\n", zErrMsg);
+    }
+
+    sqlite3_close(db);
+}
+
+void Database::removeDirectory(string dirName, int directory_id)
+{
+    sqlite3 *db;
+    char *zErrMsg = 0;
+    int rc;
+
+    rc = sqlite3_open(dbPath, &db);
+
+
+    string sql;
+    if( directory_id == 0 ) {
+        sql = "delete from Directories where parent_id is NULL and name = \"" + dirName + "\"";
+    } else {
+        sql = "delete from Directories where parent_id = " + std::to_string(directory_id) + " and name = \"" + dirName + "\"";
+    }
+
+    rc = sqlite3_exec(db, sql.c_str(), 0, 0, &zErrMsg);
+
+    if( rc != SQLITE_OK ) {
+        fprintf(stderr, "SQL here error: %s\n", zErrMsg);
+    }
+
+    sqlite3_close(db);
 }
 

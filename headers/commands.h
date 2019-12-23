@@ -13,8 +13,9 @@ public:
     static void cd(string command, int *directory_id);
     static void touch(string command, int directory_id);
     static void exitFromTerminal();
-    static void rm(int fileId);
-    static void rmdir(int dirId);
+    static void rm(string command, int directory_id);
+    static void rmdir(string command, int directory_id);
+    static void mkdir(string command, int directory_id);
 };
 
 static const string CLEAR = "clear";
