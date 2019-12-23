@@ -44,7 +44,11 @@ static int dirsCallback(void *listMode, int argc, char **argv, char **azColName)
    }
 
    for(i = 0; i<argc; i++){
-        printf("%s\t", argv[i]);
+        if( i == argc - 1 ) {
+           printf("\x1B[34m%s\033[0m\t", argv[i]);
+        } else {
+            printf("%s\t", argv[i]);
+        }
 //      printf("drwxrwxrwx\t%s = %s\n", azColName[i], argv[i] ? argv[i] : "NULL");
    }
 
@@ -188,13 +192,13 @@ void Database::createFile(string fileName, int directory_id)
     if( directory_id == 0 ) {
         sql = "insert into Files (name) values (\"" + fileName + "\");";
     } else {
-        sql = "insert into Files (name, directory_id) values (\"" + fileName + "," + std::to_string(directory_id) + "\");";
+        sql = "insert into Files (name, directory_id) values (\"" + fileName + "\", " + std::to_string(directory_id) + ");";
     }
 
     rc = sqlite3_exec(db, sql.c_str(), 0, 0, &zErrMsg);
 
     if( rc != SQLITE_OK ) {
-        printf("%s\n", "File exists!");
+        printf("%s\n", zErrMsg);
     }
 
     sqlite3_close(db);

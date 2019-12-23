@@ -4,6 +4,7 @@
 #include <boost/algorithm/string/regex.hpp>
 #include <boost/tokenizer.hpp>
 #include <regex>
+#include <iostream>
 
 void Commands::rm(string command, int directory_id)
 {
@@ -13,14 +14,11 @@ void Commands::rm(string command, int directory_id)
     boost::trim(options);
     regex r("^(..\/)*?(\/$|(\/?[a-zA-Z_0-9-]+)+)?$");
     smatch m;
-
     boost::char_separator<char> sep("/");
-    if( regex_search(options, m, r) ) {
-        boost::tokenizer<boost::char_separator<char>> tokens(options, sep);
-        for (const string& t : tokens)
-        {
-            Database::removeFile(t, *&directory_id);
-        }
+    boost::tokenizer<boost::char_separator<char>> tokens(options, sep);
+    for (const string& t : tokens)
+    {
+        Database::removeFile(t, *&directory_id);
     }
 }
 

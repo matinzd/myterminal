@@ -21,12 +21,10 @@ void Commands::touch(string command, int directory_id)
     smatch m;
 
     boost::char_separator<char> sep("/");
-    if( regex_search(options, m, r) ) {
-        boost::tokenizer<boost::char_separator<char>> tokens(options, sep);
-        for (const string& t : tokens)
-        {
-            Database::createFile(t, *&directory_id);
-            break;
-        }
+    boost::tokenizer<boost::char_separator<char>> tokens(options, sep);
+    for (const string& t : tokens)
+    {
+        Database::createFile(t, *&directory_id);
+        break;
     }
 }
